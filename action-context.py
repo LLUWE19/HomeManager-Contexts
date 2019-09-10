@@ -161,11 +161,12 @@ class HomeManager(object):
             else:
                 self.light_on = False
                 if self.arriving:
-                    sentence = "okay. see you later"
+                    sentence = "okay. welcome home"
                 else:
                     sentence = "okay. see you later"
                 self.last_question = sentence
                 self.context_commands = True
+                self.steward.light_off_all()
                 hermes.publish_end_session(session_id, sentence)
 
         elif self.last_question == "okay. what color do you want the light":
