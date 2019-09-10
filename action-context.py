@@ -196,6 +196,8 @@ class HomeManager(object):
                 self.set_light_brightness(hermes, intent_message, rooms)
             elif intent_name == INTENT_ARRIVE_HOME:
                 self.welcome_home(hermes, intent_message)
+            elif intent_name == INTENT_LEAVE_HOME:
+                self.good_bye(hermes, intent_message)
         else:
             print("[DEBUG] (master_intent_callback) Conversation mode")
             self.conversation(hermes, intent_message)
