@@ -17,7 +17,7 @@ MQTT_ADDR = "{}:{}".format(MQTT_IP_ADDR, str(MQTT_PORT))
 
 INTENT_LIGHT_ON = "turnOn"
 INTENT_LIGHT_OFF = "turnOff"
-INTENT_LIGHT_COLOR = "setColor"
+INTENT_LIGHT_COLOR = "LLUWE19:setColor"
 INTENT_LIGHT_BRIGHTNESS = "setBrightness"
 
 INTENT_ARRIVE_HOME = "arriveHome"
