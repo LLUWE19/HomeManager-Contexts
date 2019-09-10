@@ -45,6 +45,7 @@ class HomeManager(object):
             "Content-Type": "application/json",
         }
         self.context_commands = True
+        self.arriving = True
         self.last_question = None
         self.light_on = False
         self.light_color = None
@@ -115,11 +116,20 @@ class HomeManager(object):
             sentence = "Setting light brightness to " + str(percent)
         hermes.publish_end_session(intent_message.session_id, sentence)
 
-    def start_conversation(self, hermes, intent_message):
-        print("[DEBUG] start_conversation")
+    def welcome_home(self, hermes, intent_message):
+        print("[DEBUG] (welcome_home)")
         sentence = "welcome home. would you like the lights on"
         self.last_question = sentence
         self.context_commands = False
+        self.arriving = True
+        hermes.publish_continue_session(intent_message.session_id, sentence, [INTENT_GIVE_ANSWER])
+
+    def good_bye(self, hermes, intent_message):
+        print("[DEBUG] (good_bye)")
+        sentence = "okay. would you like the lights on"
+        self.last_question = sentence
+        self.context_commands = False
+        self.arriving = False
         hermes.publish_continue_session(intent_message.session_id, sentence, [INTENT_GIVE_ANSWER])
 
     def conversation(self, hermes, intent_message):
@@ -161,7 +171,10 @@ class HomeManager(object):
 
         elif self.last_question == "okay. how bright do you want the light":
             print("User responded with brightness")
-            sentence = "okay. welcome home"
+            if self.arriving:
+                sentence = "okay. welcome home"
+            else:
+                sentence = "okay. see you later"
             self.steward.set_lights_all(self.light_color, self.light_brightness)
             self.context_commands = True
             self.last_question = sentence
@@ -182,7 +195,7 @@ class HomeManager(object):
             elif intent_name == INTENT_LIGHT_BRIGHTNESS:
                 self.set_light_brightness(hermes, intent_message, rooms)
             elif intent_name == INTENT_ARRIVE_HOME:
-                self.start_conversation(hermes, intent_message)
+                self.welcome_home(hermes, intent_message)
         else:
             print("[DEBUG] (master_intent_callback) Conversation mode")
             self.conversation(hermes, intent_message)
