@@ -126,7 +126,7 @@ class HomeManager(object):
             print("message with color")
             self.light_color = intent_message.slots.color.first().value
 
-        if intent_message.slots.percentage:
+        if intent_message.slots.percent:
             print("message with brightness")
             self.light_brightness = intent_message.slots.percentage.first().value
             # Need to add some error checking to ensure that value is between 0 and 100 percent
