@@ -44,8 +44,11 @@ class HomeManager(object):
             'Authorization': self.autho,
             "Content-Type": "application/json",
         }
-        self.context = None
+        self.context_commands = True
         self.last_question = None
+        self.light_on = False
+        self.light_color = None
+        self.light_brightness = None
         self.steward = SnipsHomeManager(self.autho, self.header)
 
         # start listening to MQTT
@@ -105,11 +108,83 @@ class HomeManager(object):
             sentence = "Setting light brightness to " + str(percent)
         hermes.publish_end_session(intent_message.session_id, sentence)
 
-    def arrive_home(self, hermes, intent_message):
-        sentence = "Welcome Home, do you want the lights on?"
+    def start_conversation(self, hermes, intent_message):
+        sentence = "welcome home. would you like the lights on"
         self.last_question = sentence
-        self.context = "ArriveHome"
-        hermes.publish_end_session(intent_message.session_id, sentence)
+        self.context_commands = False
+        hermes.publish_continue_session(intent_message.session_id, sentence, [INTENT_GIVE_ANSWER])
+
+    def conversation(self, hermes, intent_message):
+        session_id = intent_message.session_id
+
+        answer = None
+        if intent_message.slots.answer:
+            answer = intent_message.slots.answer.first().value
+            print("The user answered: " + answer)
+
+        if intent_message.slots.color:
+            print("message with color")
+            self.light_color = intent_message.slots.color.first().value
+
+        if intent_message.slots.percentage:
+            print("message with brightness")
+            self.light_brightness = intent_message.slots.percentage.first().value
+            # Need to add some error checking to ensure that value is between 0 and 100 percent
+
+        """Registering the users answers"""
+        if self.last_question == "welcome home. would you like the lights on":
+            if answer == "yes":
+                self.light_on = True
+                sentence = "okay. what color do you want the light"
+                self.last_question = sentence
+                hermes.publish_continue_session(session_id, sentence, [INTENT_LIGHT_COLOR])
+            else:
+                self.light_on = False
+                sentence = "okay. welcome home"
+                self.last_question = sentence
+                self.context_commands = True
+                hermes.publish_end_session(session_id, sentence)
+
+        elif self.last_question == "okay. what color do you want the light":
+            sentence = "okay. how bright do you want the light"
+            self.last_question = sentence
+            hermes.publish_continue_session(session_id, sentence, [INTENT_LIGHT_BRIGHTNESS])
+
+        elif self.last_question == "okay. how bright do you want the light":
+            print("User responded with brightness")
+            sentence = "okay. welcome home"
+            self.context_commands = True
+            self.last_question = sentence
+            hermes.publish_end_session(session_id, sentence)
+
+    def master_intent_callback(self,hermes, intent_message):
+        rooms = self.extract_house_rooms(intent_message)
+        intent_name = intent_message.intent.intent_name
+        print("[DEBUG] " + intent_name)
+        if ':' in intent_name:
+            intent_name = intent_name.split(":")[1]
+            print("[DEBUG] intent_name: " + intent_name)
+
+        if self.context_commands:
+            print("In command mode")
+            if intent_name == INTENT_LIGHT_ON:
+                self.turn_light_on(hermes, intent_message, rooms)
+            elif intent_name == INTENT_LIGHT_OFF:
+                self.turn_light_off(hermes, intent_message, rooms)
+            elif intent_name == INTENT_LIGHT_COLOR:
+                self.set_light_color(hermes, intent_message, rooms)
+            elif intent_name == INTENT_LIGHT_BRIGHTNESS:
+                self.set_light_brightness(hermes, intent_message, rooms)
+            elif intent_name == INTENT_ARRIVE_HOME:
+                self.start_conversation(hermes, intent_message)
+        else:
+            print("Conversation mode")
+            self.conversation(hermes, intent_message)
+
+    def start_blocking(self):
+        with Hermes(MQTT_ADDR) as h:
+            print("Start Blocking")
+            h.subscribe_intents(self.master_intent_callback).start()
 
     def extract_house_rooms(self, intent_message):
         house_rooms = []
@@ -140,29 +215,6 @@ class HomeManager(object):
         if intent_message.slots.scene:
             scene_code = intent_message.slots.scene.first().value
         return scene_code
-
-    def master_intent_callback(self,hermes, intent_message):
-        rooms = self.extract_house_rooms(intent_message)
-        intent_name = intent_message.intent.intent_name
-        print("[DEBUG] " + intent_name)
-        if ':' in intent_name:
-            intent_name = intent_name.split(":")[1]
-            print("[DEBUG] intent_name: " + intent_name)
-        if intent_name == INTENT_LIGHT_ON:
-            self.turn_light_on(hermes, intent_message, rooms, "")
-        elif intent_name == INTENT_LIGHT_OFF:
-            self.turn_light_off(hermes, intent_message, rooms)
-        elif intent_name == INTENT_LIGHT_COLOR:
-            self.set_light_color(hermes, intent_message, rooms, "")
-        elif intent_name == INTENT_LIGHT_BRIGHTNESS:
-            self.set_light_brightness(hermes, intent_message, rooms, "")
-        elif intent_name == INTENT_ARRIVE_HOME:
-            self.arrive_home(hermes, intent_message)
-
-    def start_blocking(self):
-        with Hermes(MQTT_ADDR) as h:
-            print("Start Blocking")
-            h.subscribe_intents(self.master_intent_callback).start()
 
 
 if __name__ == "__main__":
