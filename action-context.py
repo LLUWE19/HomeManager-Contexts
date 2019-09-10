@@ -93,6 +93,7 @@ class HomeManager(object):
         hermes.publish_end_session(intent_message.session_id, sentence)
 
     def set_light_brightness(self, hermes, intent_message, rooms):
+        print("[DEBUG] set_light_brightness ")
         percent = self.extract_percentage(intent_message, None)
         if percent is None:
             sentence = "Did not specify the brightness"
@@ -153,19 +154,15 @@ class HomeManager(object):
         elif self.last_question == "okay. how bright do you want the light":
             print("User responded with brightness")
             sentence = "okay. welcome home"
+            self.steward.set_lights_all(self.light_color, self.light_brightness)
             self.context_commands = True
             self.last_question = sentence
-            self.steward.set_lights_all(self.light_color, self.light_brightness)
             hermes.publish_end_session(session_id, sentence)
 
     def master_intent_callback(self,hermes, intent_message):
         rooms = self.extract_house_rooms(intent_message)
         intent_name = intent_message.intent.intent_name
-        print("[DEBUG] " + intent_name)
-        if ':' in intent_name:
-            intent_name = intent_name.split(":")[1]
-            print("[DEBUG] intent_name: " + intent_name)
-
+        print("[DEBUG] intent_name: " + intent_name)
         if self.context_commands:
             print("In command mode")
             if intent_name == INTENT_LIGHT_ON:
