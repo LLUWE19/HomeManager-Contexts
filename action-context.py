@@ -19,6 +19,8 @@ INTENT_LIGHT_ON = "turnOn"
 INTENT_LIGHT_OFF = "turnOff"
 INTENT_LIGHT_COLOR = "LLUWE19:setColor"
 INTENT_LIGHT_BRIGHTNESS = "setBrightness"
+INTENT_TV_ON = "LLUWE19:putTvOn"
+INTENT_TV_OFF = "LLUWE19:putTvOff"
 
 INTENT_ARRIVE_HOME = "LLUWE19:arriveHome"
 INTENT_LEAVE_HOME = "LLUWE19:leaveHome"
@@ -50,6 +52,7 @@ class HomeManager(object):
         self.light_on = False
         self.light_color = None
         self.light_brightness = None
+        self.tv_on = False
         self.steward = SnipsHomeManager(self.autho, self.header)
 
         # start listening to MQTT
@@ -116,6 +119,16 @@ class HomeManager(object):
             sentence = "Setting light brightness to " + str(percent)
         hermes.publish_end_session(intent_message.session_id, sentence)
 
+    def turn_tv_on(self, hermes, intent_message):
+        self.steward.tv_on()
+        sentence = "TV on"
+        hermes.publish_end_session(intent_message.session_id, sentence)
+
+    def turn_tv_off(self, hermes, intent_message):
+        self.steward.tv_off()
+        sentence = "TV off"
+        hermes.publish_end_session(intent_message.session_id, sentence)
+
     def welcome_home(self, hermes, intent_message):
         print("[DEBUG] (welcome_home)")
         sentence = "welcome home. would you like the lights on"
@@ -168,14 +181,19 @@ class HomeManager(object):
                 self.context_commands = True
                 self.steward.light_off_all()
                 hermes.publish_end_session(session_id, sentence)
-
         elif self.last_question == "okay. what color do you want the light":
             sentence = "okay. how bright do you want the light"
             self.last_question = sentence
             hermes.publish_continue_session(session_id, sentence, [INTENT_LIGHT_BRIGHTNESS])
-
         elif self.last_question == "okay. how bright do you want the light":
-            print("User responded with brightness")
+            sentence = "okay. did you want the TV on"
+            self.last_question = sentence
+            hermes.publish_continue_session(session_id, sentence, [INTENT_GIVE_ANSWER])
+        elif self.last_question == "okay. did you want the TV on":
+            if answer == "yes":
+                self.steward.tv_on()
+            else:
+                self.steward.tv_off()
             if self.arriving:
                 sentence = "okay. welcome home"
             else:
@@ -199,6 +217,10 @@ class HomeManager(object):
                 self.set_light_color(hermes, intent_message, rooms)
             elif intent_name == INTENT_LIGHT_BRIGHTNESS:
                 self.set_light_brightness(hermes, intent_message, rooms)
+            elif intent_name == INTENT_TV_ON:
+                self.turn_tv_on(hermes, intent_message)
+            elif intent_name == INTENT_TV_OFF:
+                self.turn_tv_off(hermes, intent_message)
             elif intent_name == INTENT_ARRIVE_HOME:
                 self.welcome_home(hermes, intent_message)
             elif intent_name == INTENT_LEAVE_HOME:
