@@ -60,7 +60,8 @@ class HomeManager(object):
 
     def turn_light_on(self, hermes, intent_message, rooms):
         """
-        Used to turn on either a specific choice of light/s or turn on every connected light.
+        Process a command:
+        Either turn on a specific choice of light/s or turn on every connected light.
         """
         print("[DEBUG] (turn_light_on)")
         if len(rooms) > 0:
@@ -76,6 +77,10 @@ class HomeManager(object):
         hermes.publish_end_session(intent_message.session_id, sentence)
 
     def turn_light_off(self, hermes, intent_message, rooms):
+        """
+        Process a command:
+        Either turn off a specific choice of light/s or turn off every connected light.
+        """
         print("[DEBUG] (turn_light_off)")
         if len(rooms) > 0:
             sentence = "turning off the "
@@ -89,6 +94,10 @@ class HomeManager(object):
         hermes.publish_end_session(intent_message.session_id, sentence)
 
     def set_light_color(self, hermes, intent_message, rooms):
+        """
+        Process a command:
+        Either set the color of a specific choice of light/s or change the color of every connected light.
+        """
         print("[DEBUG] (set_light_color)")
         color = self.extract_color(intent_message)
         if len(rooms) > 0:
@@ -103,6 +112,10 @@ class HomeManager(object):
         hermes.publish_end_session(intent_message.session_id, sentence)
 
     def set_light_brightness(self, hermes, intent_message, rooms):
+        """
+        Process a command:
+        Either change the brightness of a specific choice of light/s or of every connected light.
+        """
         print("[DEBUG] set_light_brightness ")
         percent = self.extract_percentage(intent_message, None)
         if percent is None:
@@ -120,16 +133,28 @@ class HomeManager(object):
         hermes.publish_end_session(intent_message.session_id, sentence)
 
     def turn_tv_on(self, hermes, intent_message):
+        """
+        Process a command:
+        Turn the tv on.
+        """
         self.steward.tv_on()
         sentence = "TV on"
         hermes.publish_end_session(intent_message.session_id, sentence)
 
     def turn_tv_off(self, hermes, intent_message):
+        """
+        Process a command:
+        Turn the tv off.
+        """
         self.steward.tv_off()
         sentence = "TV off"
         hermes.publish_end_session(intent_message.session_id, sentence)
 
     def welcome_home(self, hermes, intent_message):
+        """
+        Begin a conversation:
+        Triggered with the "I'm home intent", starts a conversation setting lights and switches in the house.
+        """
         print("[DEBUG] (welcome_home)")
         sentence = "welcome home. would you like the lights on"
         self.last_question = sentence
@@ -138,6 +163,10 @@ class HomeManager(object):
         hermes.publish_continue_session(intent_message.session_id, sentence, [INTENT_GIVE_ANSWER])
 
     def good_bye(self, hermes, intent_message):
+        """
+        Begin a conversation:
+        Triggered with the "I'm leaving intent", starts a conversation setting lights and switches in the house.
+        """
         print("[DEBUG] (good_bye)")
         sentence = "okay. would you like the lights on"
         self.last_question = sentence
@@ -146,6 +175,10 @@ class HomeManager(object):
         hermes.publish_continue_session(intent_message.session_id, sentence, [INTENT_GIVE_ANSWER])
 
     def conversation(self, hermes, intent_message):
+        """
+        Becomes the main callback function when the conversation context is triggered (i.e when "context_commands" is false.
+        Will ask for a number of user preferences and carry them out at the end of the conversation.
+        """
         print("[DEBUG] conversation")
         session_id = intent_message.session_id
 
@@ -175,7 +208,6 @@ class HomeManager(object):
                 self.light_on = False
                 sentence = "okay. did you want the TV on"
                 self.last_question = sentence
-                self.steward.light_off_all()
                 hermes.publish_continue_session(session_id, sentence, [INTENT_GIVE_ANSWER])
         elif self.last_question == "okay. what color do you want the light":
             sentence = "okay. how bright do you want the light"
@@ -187,22 +219,36 @@ class HomeManager(object):
             hermes.publish_continue_session(session_id, sentence, [INTENT_GIVE_ANSWER])
         elif self.last_question == "okay. did you want the TV on":
             if answer == "yes":
-                self.steward.tv_on()
+                self.tv_on = True
             else:
-                self.steward.tv_off()
+                self.tv_on = False
             if self.arriving:
                 sentence = "okay. welcome home"
             else:
                 sentence = "okay. see you later"
-            self.steward.set_lights_all(self.light_color, self.light_brightness)
+            if self.tv_on:
+                self.steward.tv_on()
+            else:
+                self.steward.tv_off()
+            if self.light_on:
+                self.steward.set_lights_all(self.light_color, self.light_brightness)
+            else:
+                self.steward.light_off_all()
             self.context_commands = True
             self.last_question = sentence
             hermes.publish_end_session(session_id, sentence)
 
     def master_intent_callback(self,hermes, intent_message):
+        """
+        Callback function to provide extra processing and routing for either commands or conversations.
+        Commands or conversations are managed using the "context_commands" boolean. E.g. if the "context_commands" is
+        true, then the system is in command mode and will listen and execute intents that issue commands. (turn light on).
+        If it is false it will continue to call back the conversation function until the conversation has been
+        processed.
+        """
         rooms = self.extract_house_rooms(intent_message)
         intent_name = intent_message.intent.intent_name
-        print("[DEBUG] (master_intent_callback) intent_name: " + intent_name)
+        print("[DEBnUG] (master_intent_callback) intent_name: " + intent_name)
         if self.context_commands:
             print("[DEBUG] (master_intent_callback) In command mode")
             if intent_name == INTENT_LIGHT_ON:
@@ -226,11 +272,19 @@ class HomeManager(object):
             self.conversation(hermes, intent_message)
 
     def start_blocking(self):
+        """
+        Subscribe and start listening to the MQTT broker
+        """
         with Hermes(MQTT_ADDR) as h:
             print("Start Blocking")
             h.subscribe_intents(self.master_intent_callback).start()
 
     def extract_house_rooms(self, intent_message):
+        """
+        Extracts the rooms which the user has specified in the intent message
+        :param intent_message:
+        :return: A list of rooms
+        """
         house_rooms = []
         if intent_message.slots.house_room:
             for room in intent_message.slots.house_room.all():
@@ -239,6 +293,12 @@ class HomeManager(object):
         return house_rooms
 
     def extract_percentage(self, intent_message, default_percentage):
+        """
+        Extracts a percentage from a percent slot in an intent message. Used for changing lights brightness.
+        :param intent_message:
+        :param default_percentage:
+        :return: a double, percentage
+        """
         percentage = default_percentage
         if intent_message.slots.percent:
             percentage = intent_message.slots.percent.first().value
@@ -249,16 +309,15 @@ class HomeManager(object):
         return percentage
 
     def extract_color(self, intent_message):
+        """
+        Extracts the color specified from the user in the intent_messages slot.
+        :param intent_message:
+        :return: string, color name
+        """
         color_code = None
         if intent_message.slots.color:
             color_code = intent_message.slots.color.first().value
         return color_code
-
-    def extract_scene(self, intent_message):
-        scene_code = None
-        if intent_message.slots.scene:
-            scene_code = intent_message.slots.scene.first().value
-        return scene_code
 
 
 if __name__ == "__main__":
