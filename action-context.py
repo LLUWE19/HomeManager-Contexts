@@ -155,6 +155,7 @@ class HomeManager(object):
             sentence = "okay. welcome home"
             self.context_commands = True
             self.last_question = sentence
+            self.steward.set_lights_all(self.light_color, self.light_brightness)
             hermes.publish_end_session(session_id, sentence)
 
     def master_intent_callback(self,hermes, intent_message):

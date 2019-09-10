@@ -200,6 +200,17 @@ class SnipsHomeManager:
         :return: None
         """
 
+    def set_lights_all(self, color, brightness):
+        url = 'http://192.168.0.136:8123/api/services/light/turn_on'
+        body = {
+            "entity_id": "light.tall_lamp",
+            "color_name": color,
+            "brightness_pct": brightness
+        }
+        json_body = json.dumps(body)
+        print(json_body)
+        request = rq.post(url, data=json_body, headers=self.header)
+
     def tv_on(self):
         """
         Ask Hass to turn the tv on.
