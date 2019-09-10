@@ -173,10 +173,7 @@ class HomeManager(object):
                 hermes.publish_continue_session(session_id, sentence, [INTENT_LIGHT_COLOR])
             else:
                 self.light_on = False
-                if self.arriving:
-                    sentence = "okay. welcome home"
-                else:
-                    sentence = "okay. see you later"
+                sentence = "okay. did you want the TV on"
                 self.last_question = sentence
                 self.context_commands = True
                 self.steward.light_off_all()
