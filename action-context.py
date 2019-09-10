@@ -177,7 +177,7 @@ class HomeManager(object):
                 self.last_question = sentence
                 self.context_commands = True
                 self.steward.light_off_all()
-                hermes.publish_end_session(session_id, sentence)
+                hermes.publish_continue_session(session_id, sentence, [INTENT_GIVE_ANSWER])
         elif self.last_question == "okay. what color do you want the light":
             sentence = "okay. how bright do you want the light"
             self.last_question = sentence
