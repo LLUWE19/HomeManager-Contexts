@@ -207,7 +207,7 @@ class SnipsHomeManager:
 
         url = 'http://192.168.0.136:8123/api/services/light/turn_on'
         body = {
-            "entity_id": "light.all",
+            "entity_id": "all",
             "color_name": color,
             "brightness_pct": brightness
         }
