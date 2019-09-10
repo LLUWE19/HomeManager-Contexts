@@ -151,7 +151,8 @@ class HomeManager(object):
             # Need to add some error checking to ensure that value is between 0 and 100 percent
 
         """Registering the users answers"""
-        if self.last_question == "welcome home. would you like the lights on":
+        if self.last_question == "welcome home. would you like the lights on" \
+                or self.last_question == "okay. would you like the lights on":
             if answer == "yes":
                 self.light_on = True
                 sentence = "okay. what color do you want the light"
@@ -159,7 +160,10 @@ class HomeManager(object):
                 hermes.publish_continue_session(session_id, sentence, [INTENT_LIGHT_COLOR])
             else:
                 self.light_on = False
-                sentence = "okay. welcome home"
+                if self.arriving:
+                    sentence = "okay. see you later"
+                else:
+                    sentence = "okay. see you later"
                 self.last_question = sentence
                 self.context_commands = True
                 hermes.publish_end_session(session_id, sentence)
