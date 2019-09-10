@@ -22,7 +22,7 @@ INTENT_LIGHT_BRIGHTNESS = "setBrightness"
 
 INTENT_ARRIVE_HOME = "arriveHome"
 INTENT_LEAVE_HOME = "leaveHome"
-INTENT_GIVE_ANSWER = "giveAnswer"
+INTENT_GIVE_ANSWER = "LLUWE19:giveAnswer"
 
 
 class HomeManager(object):
