@@ -203,7 +203,7 @@ class SnipsHomeManager:
     def set_lights_all(self, color, brightness):
         print("[DEBUG] set_lights_all")
         print("[DEBUG] Color: " + color)
-        print("[DEBUG] Brightness: " + brightness)
+        print("[DEBUG] Brightness: " + str(brightness))
 
         url = 'http://192.168.0.136:8123/api/services/light/turn_on'
         body = {
