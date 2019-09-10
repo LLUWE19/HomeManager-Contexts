@@ -128,7 +128,7 @@ class HomeManager(object):
 
         if intent_message.slots.percent:
             print("message with brightness")
-            self.light_brightness = intent_message.slots.percentage.first().value
+            self.light_brightness = intent_message.slots.percent.first().value
             # Need to add some error checking to ensure that value is between 0 and 100 percent
 
         """Registering the users answers"""
