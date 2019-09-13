@@ -117,7 +117,7 @@ class HomeManager(object):
         Either change the brightness of a specific choice of light/s or of every connected light.
         """
         print("[DEBUG] set_light_brightness ")
-        percent = self.extract_percentage(intent_message, None)
+        percent = intent_message.slots.percent.first().value
         if percent is None:
             sentence = "Did not specify the brightness"
             hermes.publish_end_session(intent_message.session_id, sentence)
@@ -150,7 +150,7 @@ class HomeManager(object):
         sentence = "TV off"
         hermes.publish_end_session(intent_message.session_id, sentence)
 
-    def welcome_home(self, hermes, intent_message):
+    def start_conversation_arrive(self, hermes, intent_message):
         """
         Begin a conversation:
         Triggered with the "I'm home intent", starts a conversation setting lights and switches in the house.
@@ -162,7 +162,7 @@ class HomeManager(object):
         self.arriving = True
         hermes.publish_continue_session(intent_message.session_id, sentence, [INTENT_GIVE_ANSWER])
 
-    def good_bye(self, hermes, intent_message):
+    def start_conversation_leave(self, hermes, intent_message):
         """
         Begin a conversation:
         Triggered with the "I'm leaving intent", starts a conversation setting lights and switches in the house.
@@ -182,6 +182,7 @@ class HomeManager(object):
         print("[DEBUG] conversation")
         session_id = intent_message.session_id
 
+        """Check for slots"""
         answer = None
         if intent_message.slots.answer:
             answer = intent_message.slots.answer.first().value
@@ -196,7 +197,7 @@ class HomeManager(object):
             self.light_brightness = intent_message.slots.percent.first().value
             # Need to add some error checking to ensure that value is between 0 and 100 percent
 
-        """Registering the users answers"""
+        """Register the users answers + keep track of the conversation"""
         if self.last_question == "welcome home. would you like the lights on" \
                 or self.last_question == "okay. would you like the lights on":
             if answer == "yes":
@@ -222,21 +223,32 @@ class HomeManager(object):
                 self.tv_on = True
             else:
                 self.tv_on = False
-            if self.arriving:
-                sentence = "okay. welcome home"
-            else:
-                sentence = "okay. see you later"
-            if self.tv_on:
-                self.steward.tv_on()
-            else:
-                self.steward.tv_off()
-            if self.light_on:
-                self.steward.set_lights_all(self.light_color, self.light_brightness)
-            else:
-                self.steward.light_off_all()
-            self.context_commands = True
-            self.last_question = sentence
-            hermes.publish_end_session(session_id, sentence)
+
+            self.end_conversation(hermes, session_id)
+
+    def end_conversation(self, hermes, session_id):
+        """
+        Now have all of the required information and can carry out the users requests
+        """
+
+        """Carry out the requests"""
+        if self.tv_on:
+            self.steward.tv_on()
+        else:
+            self.steward.tv_off()
+        if self.light_on:
+            self.steward.set_lights_all(self.light_color, self.light_brightness)
+        else:
+            self.steward.light_off_all()
+        if self.arriving:
+            sentence = "okay. welcome home"
+        else:
+            sentence = "okay. see you later"
+
+        """Return to command mode"""
+        self.context_commands = True
+        self.last_question = sentence
+        hermes.publish_end_session(session_id, sentence)
 
     def master_intent_callback(self,hermes, intent_message):
         """
@@ -248,7 +260,7 @@ class HomeManager(object):
         """
         rooms = self.extract_house_rooms(intent_message)
         intent_name = intent_message.intent.intent_name
-        print("[DEBnUG] (master_intent_callback) intent_name: " + intent_name)
+        print("[DEBUG] (master_intent_callback) intent_name: " + intent_name)
         if self.context_commands:
             print("[DEBUG] (master_intent_callback) In command mode")
             if intent_name == INTENT_LIGHT_ON:
@@ -264,9 +276,9 @@ class HomeManager(object):
             elif intent_name == INTENT_TV_OFF:
                 self.turn_tv_off(hermes, intent_message)
             elif intent_name == INTENT_ARRIVE_HOME:
-                self.welcome_home(hermes, intent_message)
+                self.start_conversation_arrive(hermes, intent_message)
             elif intent_name == INTENT_LEAVE_HOME:
-                self.good_bye(hermes, intent_message)
+                self.start_conversation_leave(hermes, intent_message)
         else:
             print("[DEBUG] (master_intent_callback) Conversation mode")
             self.conversation(hermes, intent_message)
