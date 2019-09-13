@@ -108,7 +108,7 @@ class SnipsHomeManager:
         url = self.api_address + 'services/light/turn_on'
         body = {
             "entity_id": "light.{}_light".format(room),
-            "brightness": brightness
+            "brightness_pct": brightness
         }
         json_body = json.dumps(body)
         request = rq.post(url, data=json_body, headers=self.header)
@@ -122,7 +122,7 @@ class SnipsHomeManager:
         url = self.api_address + 'services/light/turn_on'
         body = {
             "entity_id": "all",
-            "brightness": brightness
+            "brightness_pct": brightness
         }
         json_body = json.dumps(body)
         request = rq.post(url, data=json_body, headers=self.header)
